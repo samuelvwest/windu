@@ -1,48 +1,26 @@
 window.windu = {
-    rC: function () {
-        var char = '';
-        if (Math.floor(1 + Math.random() * 2) === 1) {
-            char = String.fromCharCode(Math.floor(65 + Math.random() * 23));
-        } else {
-            char = String.fromCharCode(Math.floor(97 + Math.random() * 23));
-        }
-        return char;
-    },
-    sC: function (p) {
-        var ol = 24,
+    randomKey: function (p) {
+        function randomCharacter() {
+            var char = '';
+            if (Math.floor(1 + Math.random() * 2) === 1) {
+                char = String.fromCharCode(Math.floor(65 + Math.random() * 23));
+            } else {
+                char = String.fromCharCode(Math.floor(97 + Math.random() * 23));
+            }
+            return char;
+        };
+        var ol = p || 24,
             init = Math.floor((1 + Math.random()) * 0x10000) * Date.now(),
             iS = init.toString(),
             iCN = Math.floor(12 + Math.random() * 42);
-        if (p === 'long') {
-            ol = 6;
-        } else if (p === parseInt(p, 10)) {
-            ol = p;
-        }
         for (i = 0; i < iCN; i++) {
             var iL = iS.length,
                 iP = Math.floor(1 + Math.random() * iL);
-            iS = [iS.slice(0, iP), this.rC(), iS.slice(iP)].join('');
+            iS = [iS.slice(0, iP), randomCharacter(), iS.slice(iP)].join('');
         }
         sub = Math.floor(1 + Math.random() * (iS.length - ol));
         use = iS.substring(sub, sub + ol);
         return use;
-    },
-    rKG: function (pref) {
-        if (pref === 'long') {
-            return this.sC(12) + '_' + this.sC(12) + '_' + this.sC(6) + this.sC(12) + this.sC(6);
-        } else if (pref === parseInt(pref, 10)) {
-            var fin = '',
-                rem = pref % 24,
-                rep = (pref - rem) / 24;
-            for (i2 = 0; i2 < rep; i2++) {
-                fin += this.sC();
-            }
-            if (rem > 0) {
-                fin += this.sC(rem);
-            }
-            return fin;
-        }
-        return this.sC(pref);
     },
     consoleLog: function (str, shouldDo) {
         if (shouldDo) {
@@ -56,7 +34,7 @@ window.windu = {
     data: {},
     create: function (json) {
         json.detectType = !!json.detectType ? this.simplifyString(json.detectType) : 'mutation';
-        json.name = !!json.name ? this.simplifyString(json.name) : 'zz_' + json.detectType + '_' + this.rKG(10);
+        json.name = !!json.name ? this.simplifyString(json.name) : 'zz_' + json.detectType + '_' + this.randomKey(10);
         if (json.detectType === 'mutation') {
             if (!!json.attach) {
                 if (typeof json.attach === 'function') {
