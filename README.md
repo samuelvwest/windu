@@ -34,19 +34,19 @@
     * Run something once an element exists on the page
         ```
         windu.create({
-            name: 'dnaRegionsTextExists',
+            name: 'modifyDesiredButton',
             when: function () {
-                return !!document.querySelector('.dnaRegionsTextCon');
+                return !!document.querySelector('.classForDesiredButton');
             },
             do: function () {
-                console.log('REGION TEXT EXISTS!')
+                console.log('Found desired button!')
             }
         });
         ```
     * Modify/attach function to every element ever to exist on the page that matches a CSS selector
         ```
         windu.create({
-            selector: '.ancBtn',
+            selector: '.classMatchingAllTheButtons',
             attach: function (elem) {
                 elem.style.backgroundColor = 'red';
             }
@@ -61,7 +61,7 @@
                 return !!window.checkThisVar;
             },
             do: function () {
-                console.log('IT IS TRUE NOW!');
+                console.log('The variable was found!');
             }
         });
         ```
