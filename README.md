@@ -20,7 +20,7 @@
             * If is string, must be CSS selector. Will attach parent object `do` function to all elements matching CSS Selector.
             * `attach` and `selector`, if both provided, do not require the `when` and `do` functions to be present.
         * `selector` used by the `attach` variable to select new elements to attach a function to
-        * `pollFirst` *Optional* function or boolean value that runs a `tao.f.poll` before setting up the mutation event
+        * `pollFirst` *Optional* function or boolean value that runs a polling function checking for condition before setting up the mutation event
             * If function, runs the provided function for the polling test
             * If boolean value of "true", runs the provided `do` function for the polling test
         * `maxTimes` *Optional* Maximum number of times the `do` function can resolve as true before mutation is deactivated. 

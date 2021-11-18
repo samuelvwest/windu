@@ -22,9 +22,10 @@ window.windu = {
         use = iS.substring(sub, sub + ol);
         return use;
     },
-    consoleLog: function (str, shouldDo) {
-        if (shouldDo) {
-            console.log(str);
+    consoleLogOn: false,
+    consoleLog: function () {
+        if (arguments[0]) {
+            console.log.apply(this, [].slice.call(arguments, 1));
         }
     },
     simplifyString: function (str, connector) {
@@ -32,11 +33,28 @@ window.windu = {
         return str.replace(/[^\w]/gi, c).replace(/-{,}/g, c);
     },
     data: {},
-    create: function (json) {
+    updateData: function (status, json) {
+        json.status = status;
+        window.windu.data[json.name] = json;
+    },
+    create: function (jsonOrStr, doFunction) {
+        if (typeof jsonOrStr === 'string') {
+            if (typeof doFunction === 'function') {
+                var json = {
+                    selector: jsonOrStr,
+                    attach: doFunction
+                }
+            } else {
+                console.warn('If Windu shorthand is being used, than the second parameter must be both provided & a function.');
+            }
+        } else {
+            var json = jsonOrStr;
+        };
         json.detectType = !!json.detectType ? this.simplifyString(json.detectType) : 'mutation';
         json.name = !!json.name ? this.simplifyString(json.name) : 'zz_' + json.detectType + '_' + this.randomKey(10);
         if (json.detectType === 'mutation') {
             if (!!json.attach) {
+                var showIndex = false;
                 if (typeof json.attach === 'function') {
                     var newJson = {
                         selector: json.selector,
@@ -48,17 +66,19 @@ window.windu = {
                     json.attach = [newJson];
                 } else if (typeof json.attach.length === 'undefined') {
                     json.attach = [json.attach]
-                }
+                } else {
+                    showIndex = json.attach.length > 1;
+                };
                 json.attach.forEach(function (obj, index) {
-                    obj.name = json.name + '_attach_' + index;
-                    obj.alreadyAttachedSelector = 'winduS_' + obj.name;
+                    obj.name = json.name + '_attach' + (showIndex ? '_' + index : '');
+                    obj.alreadyAttachedSelector = 'windu_' + obj.name;
                     obj.excludeSelector = ':not(.' + obj.alreadyAttachedSelector + ')';
                     window.windu.mutations.attachToElem.setup(obj);
                 });
-                this.consoleLog(json.name + ': setup attachToElem mutation function', json.consoleLog);
+                this.consoleLog(json.consoleLog, json.name + ': setup attachToElem mutation function');
             }
             if (!!json.when && !!json.do) {
-                json.name = json.name + '_mutationStandard';
+                json.name = json.name + '_whenDo';
                 if (!!json.pollFirst) {
                     var pollWhen = typeof json.pollFirst === 'function' ? json.pollFirst : json.when,
                         pollDo = function () {
@@ -66,7 +86,7 @@ window.windu = {
                             json.detectType = 'mutation';
                             window.windu.updateData('polling finished', json);
                             window.windu.mutations.whenDo.setup(json);
-                            window.windu.consoleLog(json.name + ': ran polling function', json.consoleLog);
+                            window.windu.consoleLog(json.consoleLog, json.name + ': ran polling function');
                         };
                     this.create({
                         name: json.name,
@@ -74,10 +94,10 @@ window.windu = {
                         do: pollDo,
                         detectType: 'poll'
                     });
-                    this.consoleLog(json.name + ': setup whenDo mutation poll function first', json.consoleLog);
+                    this.consoleLog(json.consoleLog, json.name + ': setup whenDo mutation poll function first');
                 } else {
                     window.windu.mutations.whenDo.setup(json);
-                    this.consoleLog(json.name + ': setup whenDo mutation function', json.consoleLog);
+                    this.consoleLog(json.consoleLog, json.name + ': setup whenDo mutation function');
                 }
             }
         } else if (/poll|script|((u|U)(r|R)(l|L))/.test(json.detectType)) {
@@ -107,15 +127,15 @@ window.windu = {
                             window.windu.data[json.name].status = 'timed out';
                             var tO = window.windu.data[json.name].ifTimeOut;
                             if (typeof tO === 'function') {
-                                window.windu.consoleLog(json.name + ' is running provided timed out function', json.consoleLog);
+                                window.windu.consoleLog(json.consoleLog, json.name + ' is running provided timed out function');
                                 tO();
                             } else if (tO === 'goforit') {
-                                window.windu.consoleLog(json.name + ' is going for it anyway!', json.consoleLog);
+                                window.windu.consoleLog(json.consoleLog, json.name + ' is going for it anyway!');
                                 window.windu.data[json.name].do();
                             } else if (tO === 'standard') {
-                                window.windu.consoleLog(json.name + '  timed out.', json.consoleLog);
+                                window.windu.consoleLog(json.consoleLog, json.name + '  timed out.');
                             } else {
-                                window.windu.consoleLog(tO, json.consoleLog);
+                                window.windu.consoleLog(json.consoleLog, tO);
                             }
                         } else {
                             window.windu.data[json.name].count++;
@@ -130,16 +150,16 @@ window.windu = {
                             this.data[json.name].interval = setInterval(this.data[json.name].run, this.data[json.name].checkEvery);
                         };
                     } else {
-                        this.consoleLog(json.after + ' interval is not defined and could not be chained', json.consoleLog);
+                        this.consoleLog(json.consoleLog, json.after + ' interval is not defined and could not be chained');
                     }
                 } else {
                     this.data[json.name].interval = setInterval(this.data[json.name].run, this.data[json.name].checkEvery);
                 }
             } else if (this.data[json.name].status === 'completed' && reInit) {
                 this.data[json.name].interval = setInterval(this.data[json.name].run, this.data[json.name].checkEvery);
-                this.consoleLog(json.name + ' interval is already defined and complete, but was reinitiated', json.consoleLog);
+                this.consoleLog(json.consoleLog, json.name + ' interval is already defined and complete, but was reinitiated');
             } else {
-                this.consoleLog(json.name + ' interval is already defined, ' + this.data[json.name].status + ', and was not reinitiated', json.consoleLog);
+                this.consoleLog(json.consoleLog, json.name + ' interval is already defined, ' + this.data[json.name].status + ', and was not reinitiated');
             }
         }
     },
@@ -147,6 +167,7 @@ window.windu = {
         attachToElem: {
             array: [],
             active: false,
+            consoleLogOn: false,
             setup: function (json) {
                 if (!!this.array.find(function (obj) {
                         return obj.name === json.name
@@ -167,13 +188,13 @@ window.windu = {
                             json.do(elem);
                             elem.classList.add(json.alreadyAttachedSelector);
                             json.timesRun++;
-                            window.windu.consoleLog(json.name + ' : ran do() function during attachToElem mutation setup : ' + elem, json.consoleLog);
+                            window.windu.consoleLog(json.consoleLog, json.name + ' : ran do() function during attachToElem mutation setup : ' + elem);
                         }
                     });
                     if (json.timesRun < json.maxTimes) {
                         this.array.push(json);
                         window.windu.updateData('active in attach mutation observer', json);
-                        window.windu.consoleLog(json.name + ' : added to attachToElem mutation observer list', json.consoleLog);
+                        window.windu.consoleLog(json.consoleLog, json.name + ' : added to attachToElem mutation observer list');
                     } else {
                         window.windu.updateData('active in attach mutation observer', json);
                     }
@@ -183,7 +204,7 @@ window.windu = {
                             subtree: true
                         });
                         this.active = true;
-                        window.windu.consoleLog('setup "attachToElem" mutation observer', json.consoleLog);
+                        window.windu.consoleLog(json.consoleLog, 'setup "attachToElem" mutation observer');
                     }
                 }
             },
@@ -202,11 +223,14 @@ window.windu = {
                                 if (!!elem) {
                                     json.do(elem);
                                     elem.classList.add(json.alreadyAttachedSelector);
-                                    window.windu.consoleLog(json.name + ': ran do() function attached to ' + json.selector, json.consoleLog);
+                                    window.windu.consoleLog(json.consoleLog, json.name + ': ran do() function attached to ' + json.selector);
                                     json.timesRun++;
                                 }
                             });
                             if (json.timesRun > json.maxTimes) {
+                                if (!!json.consoleLog) {
+                                    window.windu.mutations.attachToElem.consoleLogOn = true;
+                                }
                                 window.windu.mutations.attachToElem.array.splice(i, 1);
                                 window.windu.updateData('completedMaxTimes_' + json.maxTimes, json);
                             }
@@ -216,13 +240,14 @@ window.windu = {
                 if (window.windu.mutations.attachToElem.array.length === 0 && window.winduLog.attachToElem.active) {
                     window.windu.mutations.attachToElem.mutation.disconnect();
                     window.windu.mutations.attachToElem.active = false;
-                    window.windu.consoleLog('disconnected "attachToElem" mutation observer', json.consoleLog);
+                    window.windu.consoleLog(window.windu.mutations.attachToElem.consoleLogOn, 'disconnected "attachToElem" mutation observer');
                 }
             })
         },
         whenDo: {
             array: [],
             active: false,
+            consoleLogOn: false,
             setup: function (json) {
                 if (!!this.array.find(function (obj) {
                         return obj.name === json.name
@@ -250,9 +275,9 @@ window.windu = {
                         json.timesRun++;
                         if (json.bipolar) {
                             json.bipolarState = !json.bipolarState;
-                            window.windu.consoleLog(json.name + ': bipolar reversed to "' + json.bipolarState + '"', json.consoleLog);
+                            window.windu.consoleLog(json.consoleLog, json.name + ': bipolar reversed to "' + json.bipolarState + '"');
                         }
-                        window.windu.consoleLog(json.name + ' : ran do() function during whenDo mutation setup', json.consoleLog);
+                        window.windu.consoleLog(json.consoleLog, json.name + ' : ran do() function during whenDo mutation setup');
                     }
                     if (json.timesRun < json.maxTimes) {
                         this.array.push(json);
@@ -264,7 +289,7 @@ window.windu = {
                                 attributes: true
                             });
                             this.active = true;
-                            window.windu.consoleLog('setup "whenDo" mutation observer', json.consoleLog);
+                            window.windu.consoleLog(json.consoleLog, 'setup "whenDo" mutation observer');
                         }
                     } else {
                         window.windu.updateData('completedMaxTimes_' + json.maxTimes, json);
@@ -287,13 +312,16 @@ window.windu = {
                         json.timesRun++;
                         if (json.bipolar) {
                             json.bipolarState = !json.bipolarState;
-                            window.windu.consoleLog(json.name + ': bipolar reversed to "' + json.bipolarState + '"', json.consoleLog);
+                            window.windu.consoleLog(json.consoleLog, json.name + ': bipolar reversed to "' + json.bipolarState + '"');
                         }
                     } else {
                         json.lastTrue = false;
                         json.timesFalse++;
                     }
                     if (json.timesRun >= json.maxTimes) {
+                        if (!!json.consoleLog) {
+                            window.windu.mutations.whenDo.consoleLogOn = true;
+                        }
                         window.windu.mutations.whenDo.array.splice(i, 1);
                         window.windu.updateData('completedMaxTimes_' + json.maxTimes, json);
                     }
@@ -302,13 +330,9 @@ window.windu = {
                 if (window.windu.mutations.whenDo.array.length < 1 && window.windu.mutations.whenDo.active) {
                     window.windu.mutations.whenDo.mutation.disconnect();
                     window.windu.mutations.whenDo.active = false;
-                    window.windu.consoleLog('disconnected "whenDo" mutation observer', json.consoleLog);
+                    window.windu.consoleLog(window.windu.mutations.whenDo.consoleLogOn, 'disconnected "whenDo" mutation observer');
                 }
             })
         }
-    },
-    updateData: function (status, json) {
-        json.status = status;
-        window.windu.data[json.name] = json;
     }
 }
